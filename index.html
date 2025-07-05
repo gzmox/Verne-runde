@@ -80,39 +80,54 @@
       container.appendChild(div);
     });
 
-    async function exportPDF() {
-      const checklist = document.getElementById("checklist");
+async function exportPDF() {
+  const checklist = document.getElementById("checklist");
 
-      const signNavn = document.getElementById("signatur-navn").value;
-      const signDato = document.getElementById("signatur-dato").value;
-      const signFil = document.getElementById("signatur-fil").files[0];
+  const signNavn = document.getElementById("signatur-navn").value;
+  const signDato = document.getElementById("signatur-dato").value;
+  const signFil = document.getElementById("signatur-fil").files[0];
 
-      const tempDiv = document.createElement("div");
-      tempDiv.style.marginTop = "20px";
-      tempDiv.innerHTML = `<strong>Signert av:</strong> ${signNavn || "(ikke oppgitt)"}<br>
-        <strong>Dato:</strong> ${signDato || "(ikke oppgitt)"}<br>`;
+  const tempDiv = document.createElement("div");
+  tempDiv.style.marginTop = "20px";
+  tempDiv.innerHTML = `<strong>Signert av:</strong> ${signNavn || "(ikke oppgitt)"}<br>
+    <strong>Dato:</strong> ${signDato || "(ikke oppgitt)"}<br>`;
 
-      if (signFil) {
-        const img = document.createElement("img");
-        img.src = URL.createObjectURL(signFil);
-        img.style.maxWidth = "200px";
-        img.style.marginTop = "10px";
-        tempDiv.appendChild(img);
-      }
+  if (signFil) {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(signFil);
+    img.style.maxWidth = "200px";
+    img.style.marginTop = "10px";
+    tempDiv.appendChild(img);
+  }
 
-      checklist.appendChild(tempDiv);
+  checklist.appendChild(tempDiv);
 
-      const canvas = await html2canvas(checklist, { scale: 2 });
-      const imgData = canvas.toDataURL("image/jpeg", 1.0);
-      const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save("vernerunde.pdf");
+  const canvas = await html2canvas(checklist, { scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      checklist.removeChild(tempDiv);
-    }
+  const imgProps = pdf.getImageProperties(imgData);
+  const imgWidth = pdfWidth;
+  const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+  let position = 0;
+
+  // legg til første side
+  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+  
+  // legg til ekstra sider hvis nødvendig
+  while (position + pdfHeight < imgHeight) {
+    position += pdfHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 0, -position, imgWidth, imgHeight);
+  }
+
+  pdf.save("vernerunde.pdf");
+
+  checklist.removeChild(tempDiv);
+}
 
     function exportExcel() {
       const wb = XLSX.utils.book_new();
