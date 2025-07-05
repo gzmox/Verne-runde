@@ -67,9 +67,15 @@
     }
 
     input[type="file"],
+    #signatur-verneombud-signatur,
+    #signatur-utførende-signatur {
+      display: none;
+    }
+
     input[type="text"],
     input[type="date"] {
-      display: none;
+      padding: 10px;
+      font-size: 1rem;
     }
 
     .export-buttons {
@@ -90,11 +96,28 @@
     <div class="section-title">Sjekkpunkter</div>
     <div id="check-items"></div>
 
-    <!-- Skjulte signaturdata -->
-    <input type="text" id="signatur-verneombud-navn" value="Verneombud Navn">
-    <input type="date" id="signatur-verneombud-dato">
-    <input type="text" id="signatur-utførende-navn" value="Utførende Navn">
-    <input type="date" id="signatur-utførende-dato">
+    <div class="section-title">Ansvarlige</div>
+
+    <div class="check-item">
+      <div class="question">Verneombud (navn):<br>HSE Representative (name):</div>
+      <input type="text" id="signatur-verneombud-navn" placeholder="Fyll inn navn">
+    </div>
+    <div class="check-item">
+      <div class="question">Dato:<br>Date:</div>
+      <input type="date" id="signatur-verneombud-dato">
+    </div>
+
+    <div class="check-item">
+      <div class="question">Utførende (navn):<br>Responsible Worker (name):</div>
+      <input type="text" id="signatur-utførende-navn" placeholder="Fyll inn navn">
+    </div>
+    <div class="check-item">
+      <div class="question">Dato:<br>Date:</div>
+      <input type="date" id="signatur-utførende-dato">
+    </div>
+
+    <input type="text" id="signatur-verneombud-signatur" value="">
+    <input type="text" id="signatur-utførende-signatur" value="">
 
     <div class="export-buttons">
       <button onclick="exportPDF()">Last ned PDF</button>
