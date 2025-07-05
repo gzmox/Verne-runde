@@ -26,44 +26,7 @@
   <div class="container" id="checklist">
     <div class="section-title">Sjekkpunkter</div>
 
-    <script>
-      const checkpoints = [
-        ["Finnes et godkjent brannalarm-anlegg?", "Is there an approved fire alarm system?"],
-        ["Er det installert adgangskontroll?", "Is access control installed?"],
-        ["Er rømningsveier tydelig merket og med ledelys?", "Are escape routes clearly marked and lit?"],
-        ["Er stillaser og stiger forsvarlig montert?", "Are scaffolding and ladders properly installed?"],
-        ["Brukes påkrevd verneutstyr?", "Is the required protective equipment used?"],
-        ["Er lysarmaturene PCB-frie?", "Are the light fixtures PCB-free?"],
-        ["Er det tilstrekkelig lys iht. norm?", "Is lighting sufficient according to standards?"],
-        ["Gir armaturene flimmerfritt lys?", "Do fixtures provide flicker-free light?"],
-        ["Har armaturene individuell justeringsmulighet?", "Do the fixtures allow individual adjustment?"],
-        ["Er det installert overspenningsvern?", "Are surge protectors installed?"],
-        ["Er det tilfredsstillende varme/kjøling?", "Is heating/cooling sufficient?"],
-        ["Er det godkjent jordingssystem?", "Is there an approved grounding system?"],
-        ["Er det oversikt og merking i skap?", "Is there labeling and overview in cabinets?"],
-        ["Er det tegn til varmgang i skap?", "Are there signs of overheating in cabinets?"],
-        ["Er det problemer med utilsiktet utkobling av sikringer?", "Are there unintended fuse trips?"],
-        ["Er skadede kabler isolert eller skiftet?", "Are damaged cables insulated or replaced?"],
-        ["Er gulvflate jevn og uten hindringer?", "Is the floor surface even and free of obstacles?"],
-        ["Er kjemikalier merket og sikkert oppbevart?", "Are chemicals labeled and stored safely?"],
-        ["Er det tilfredsstillende ventilasjon?", "Is ventilation sufficient?"],
-        ["Er nødutganger frie og åpne?", "Are emergency exits clear and open?"]
-      ];
-      checkpoints.forEach((cp, i) => {
-        const div = document.createElement("div");
-        div.className = "check-item";
-        div.innerHTML = `
-          <div class="question">${cp[0]}<br>${cp[1]}</div>
-          <div class="options">
-            <label><input type="radio" name="q${i}" value="Ja"> Ja</label>
-            <label><input type="radio" name="q${i}" value="Nei"> Nei</label>
-          </div>
-          <textarea placeholder="Merknad..."></textarea>
-          <input type="file" accept="image/*">
-        `;
-        document.getElementById("checklist").appendChild(div);
-      });
-    </script>
+    <div id="check-items"></div>
 
     <div class="section-title">Signatur</div>
     <div class="check-item">
@@ -72,7 +35,7 @@
     </div>
     <div class="check-item">
       <div class="question">Dato:<br>Date:</div>
-      <input type="date" id="signatur-dato" value="2025-07-05">
+      <input type="date" id="signatur-dato" value="">
     </div>
     <div class="check-item">
       <div class="question">Last opp signatur (valgfritt):<br>Upload signature (optional):</div>
@@ -86,8 +49,39 @@
   </div>
 
   <script>
+    document.getElementById("signatur-dato").valueAsDate = new Date();
+
+    const checkpoints = [
+      ["Finnes et godkjent brannalarm-anlegg?", "Is there an approved fire alarm system?"],
+      ["Er det installert adgangskontroll?", "Is access control installed?"],
+      ["Er rømningsveier tydelig merket og med ledelys?", "Are escape routes clearly marked and lit?"],
+      ["Er stillaser og stiger forsvarlig montert?", "Are scaffolding and ladders properly installed?"],
+      ["Brukes påkrevd verneutstyr?", "Is the required protective equipment used?"],
+      ["Er lysarmaturene PCB-frie?", "Are the light fixtures PCB-free?"],
+      ["Er det tilstrekkelig lys iht. norm?", "Is lighting sufficient according to standards?"],
+      ["Gir armaturene flimmerfritt lys?", "Do fixtures provide flicker-free light?"],
+      ["Har armaturene individuell justeringsmulighet?", "Do the fixtures allow individual adjustment?"],
+      ["Er det installert overspenningsvern?", "Are surge protectors installed?"]
+    ];
+
+    const container = document.getElementById("check-items");
+    checkpoints.forEach((cp, i) => {
+      const div = document.createElement("div");
+      div.className = "check-item";
+      div.innerHTML = `
+        <div class="question">${cp[0]}<br>${cp[1]}</div>
+        <div class="options">
+          <label><input type="radio" name="q${i}" value="Ja"> Ja</label>
+          <label><input type="radio" name="q${i}" value="Nei"> Nei</label>
+        </div>
+        <textarea placeholder="Merknad..."></textarea>
+        <input type="file" accept="image/*">
+      `;
+      container.appendChild(div);
+    });
+
     async function exportPDF() {
-      const container = document.getElementById("checklist");
+      const checklist = document.getElementById("checklist");
 
       const signNavn = document.getElementById("signatur-navn").value;
       const signDato = document.getElementById("signatur-dato").value;
@@ -106,9 +100,9 @@
         tempDiv.appendChild(img);
       }
 
-      container.appendChild(tempDiv);
+      checklist.appendChild(tempDiv);
 
-      const canvas = await html2canvas(container, { scale: 2 });
+      const canvas = await html2canvas(checklist, { scale: 2 });
       const imgData = canvas.toDataURL("image/jpeg", 1.0);
       const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
@@ -117,42 +111,60 @@
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
       pdf.save("vernerunde.pdf");
 
-      container.removeChild(tempDiv);
+      checklist.removeChild(tempDiv);
     }
 
     function exportExcel() {
       const wb = XLSX.utils.book_new();
       const ws_data = [["Spørsmål", "Ja/Nei", "Merknad", "Bilde"]];
       const items = document.querySelectorAll(".check-item");
-      const inputs = document.querySelectorAll(".check-item input[type='file']");
 
-      let remaining = inputs.length;
+      let remaining = 0;
+      let done = 0;
 
       items.forEach((item, idx) => {
-        const question = item.querySelector(".question")?.innerText || "";
-        const answer = item.querySelector("input[type='radio']:checked")?.value || "";
+        const q = item.querySelector(".question")?.innerText || "";
+        const a = item.querySelector("input[type=radio]:checked")?.value || "";
         const note = item.querySelector("textarea")?.value || "";
-        const file = item.querySelector("input[type='file']")?.files[0];
+        const file = item.querySelector("input[type=file]")?.files[0];
 
         if (file) {
+          remaining++;
           const reader = new FileReader();
-          reader.onload = function(e) {
-            ws_data.push([question, answer, note, e.target.result]);
-            remaining--;
-            if (remaining === 0) finishExcel(wb, ws_data);
+          reader.onload = function (e) {
+            ws_data.push([q, a, note, e.target.result]);
+            done++;
+            if (done === remaining) finishExcel(wb, ws_data);
           };
           reader.readAsDataURL(file);
         } else {
-          ws_data.push([question, answer, note, ""]);
-          remaining--;
-          if (remaining === 0) finishExcel(wb, ws_data);
+          ws_data.push([q, a, note, ""]);
         }
       });
+
+      // Add signature info
+      const signName = document.getElementById("signatur-navn").value;
+      const signDate = document.getElementById("signatur-dato").value;
+      const signFile = document.getElementById("signatur-fil").files[0];
+      if (signFile) {
+        remaining++;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          ws_data.push(["Signatur", signName, signDate, e.target.result]);
+          done++;
+          if (done === remaining) finishExcel(wb, ws_data);
+        };
+        reader.readAsDataURL(signFile);
+      } else {
+        ws_data.push(["Signatur", signName, signDate, ""]);
+      }
+
+      if (remaining === 0) finishExcel(wb, ws_data);
     }
 
-    function finishExcel(wb, ws_data) {
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      XLSX.utils.book_append_sheet(wb, ws, "Vernerunde");
+    function finishExcel(wb, data) {
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, "Sjekkliste");
       XLSX.writeFile(wb, "vernerunde.xlsx");
     }
   </script>
