@@ -69,13 +69,7 @@
     input[type="file"],
     input[type="text"],
     input[type="date"] {
-      padding: 10px;
-      font-size: 1rem;
-    }
-
-    #signatur-verneombud-signatur,
-    #signatur-utførende-signatur {
-      height: 40px;
+      display: none;
     }
 
     .export-buttons {
@@ -96,35 +90,11 @@
     <div class="section-title">Sjekkpunkter</div>
     <div id="check-items"></div>
 
-    <div class="section-title">Signaturer</div>
-
-    <!-- Verneombud -->
-    <div class="check-item">
-      <div class="question">Verneombud (navn):<br>HSE Representative (name):</div>
-      <input type="text" id="signatur-verneombud-navn" placeholder="Fyll inn navn">
-    </div>
-    <div class="check-item">
-      <div class="question">Dato:<br>Date:</div>
-      <input type="date" id="signatur-verneombud-dato">
-    </div>
-    <div class="check-item">
-      <div class="question">Signatur:<br>Signature:</div>
-      <input type="text" id="signatur-verneombud-signatur" placeholder="__________________________">
-    </div>
-
-    <!-- Utførende -->
-    <div class="check-item">
-      <div class="question">Utførende (navn):<br>Responsible Worker (name):</div>
-      <input type="text" id="signatur-utførende-navn" placeholder="Fyll inn navn">
-    </div>
-    <div class="check-item">
-      <div class="question">Dato:<br>Date:</div>
-      <input type="date" id="signatur-utførende-dato">
-    </div>
-    <div class="check-item">
-      <div class="question">Signatur:<br>Signature:</div>
-      <input type="text" id="signatur-utførende-signatur" placeholder="__________________________">
-    </div>
+    <!-- Skjulte signaturdata -->
+    <input type="text" id="signatur-verneombud-navn" value="Verneombud Navn">
+    <input type="date" id="signatur-verneombud-dato">
+    <input type="text" id="signatur-utførende-navn" value="Utførende Navn">
+    <input type="date" id="signatur-utførende-dato">
 
     <div class="export-buttons">
       <button onclick="exportPDF()">Last ned PDF</button>
@@ -169,22 +139,25 @@
 
       const navnV = document.getElementById("signatur-verneombud-navn").value;
       const datoV = document.getElementById("signatur-verneombud-dato").value;
-      const signaturV = document.getElementById("signatur-verneombud-signatur").value;
-
       const navnU = document.getElementById("signatur-utførende-navn").value;
       const datoU = document.getElementById("signatur-utførende-dato").value;
-      const signaturU = document.getElementById("signatur-utførende-signatur").value;
 
       const tempDiv = document.createElement("div");
-      tempDiv.style.marginTop = "20px";
+      tempDiv.style.marginTop = "40px";
       tempDiv.innerHTML = `
-        <h3>Signaturer</h3>
-        <strong>Verneombud:</strong> ${navnV || "(ikke oppgitt)"}<br>
-        <strong>Dato:</strong> ${datoV || "(ikke oppgitt)"}<br>
-        <strong>Signatur:</strong> ${signaturV || "___________"}<br><br>
-        <strong>Utførende:</strong> ${navnU || "(ikke oppgitt)"}<br>
-        <strong>Dato:</strong> ${datoU || "(ikke oppgitt)"}<br>
-        <strong>Signatur:</strong> ${signaturU || "___________"}
+        <h2>Signaturer</h2>
+        <div style="margin-bottom: 40px;">
+          <strong>Verneombud:</strong><br>
+          Navn: ${navnV || "(ikke oppgitt)"}<br>
+          Dato: ${datoV || "(ikke oppgitt)"}<br><br>
+          Signatur: <span style="display:inline-block; border-bottom:2px solid #000; width:300px; height:40px;"></span>
+        </div>
+        <div style="margin-bottom: 40px;">
+          <strong>Utførende:</strong><br>
+          Navn: ${navnU || "(ikke oppgitt)"}<br>
+          Dato: ${datoU || "(ikke oppgitt)"}<br><br>
+          Signatur: <span style="display:inline-block; border-bottom:2px solid #000; width:300px; height:40px;"></span>
+        </div>
       `;
 
       checklist.appendChild(tempDiv);
@@ -222,9 +195,14 @@
         }
       });
 
-      // Signaturer
-      ws_data.push(["Signatur - Verneombud", document.getElementById("signatur-verneombud-navn").value, document.getElementById("signatur-verneombud-signatur").value]);
-      ws_data.push(["Signatur - Utførende", document.getElementById("signatur-utførende-navn").value, document.getElementById("signatur-utførende-signatur").value]);
+      const navnV = document.getElementById("signatur-verneombud-navn").value;
+      const datoV = document.getElementById("signatur-verneombud-dato").value;
+      const navnU = document.getElementById("signatur-utførende-navn").value;
+      const datoU = document.getElementById("signatur-utførende-dato").value;
+
+      ws_data.push([]);
+      ws_data.push(["Verneombud", navnV, datoV, "Signatur: _____________"]);
+      ws_data.push(["Utførende", navnU, datoU, "Signatur: _____________"]);
 
       const ws = XLSX.utils.aoa_to_sheet(ws_data);
       XLSX.utils.book_append_sheet(wb, ws, "Sjekkliste");
