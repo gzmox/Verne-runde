@@ -25,21 +25,34 @@
   <h1>Vernerunde - Sjekkliste</h1>
   <div class="container" id="checklist">
     <div class="section-title">Sjekkpunkter</div>
-
     <div id="check-items"></div>
 
-    <div class="section-title">Signatur</div>
+    <div class="section-title">Signaturer</div>
+
     <div class="check-item">
-      <div class="question">Signert av (navn):<br>Signed by (name):</div>
-      <input type="text" id="signatur-navn" placeholder="Fyll inn navn / Enter name">
+      <div class="question">Verneombud (navn):<br>HSE Representative (name):</div>
+      <input type="text" id="signatur-verneombud-navn" placeholder="Fyll inn navn">
     </div>
     <div class="check-item">
       <div class="question">Dato:<br>Date:</div>
-      <input type="date" id="signatur-dato" value="">
+      <input type="date" id="signatur-verneombud-dato">
     </div>
     <div class="check-item">
       <div class="question">Last opp signatur (valgfritt):<br>Upload signature (optional):</div>
-      <input type="file" accept="image/*" id="signatur-fil">
+      <input type="file" accept="image/*" id="signatur-verneombud-fil">
+    </div>
+
+    <div class="check-item">
+      <div class="question">Utførende (navn):<br>Responsible Worker (name):</div>
+      <input type="text" id="signatur-utførende-navn" placeholder="Fyll inn navn">
+    </div>
+    <div class="check-item">
+      <div class="question">Dato:<br>Date:</div>
+      <input type="date" id="signatur-utførende-dato">
+    </div>
+    <div class="check-item">
+      <div class="question">Last opp signatur (valgfritt):<br>Upload signature (optional):</div>
+      <input type="file" accept="image/*" id="signatur-utførende-fil">
     </div>
 
     <div class="export-buttons">
@@ -49,7 +62,8 @@
   </div>
 
   <script>
-    document.getElementById("signatur-dato").valueAsDate = new Date();
+    document.getElementById("signatur-verneombud-dato").valueAsDate = new Date();
+    document.getElementById("signatur-utførende-dato").valueAsDate = new Date();
 
     const checkpoints = [
       ["Finnes et godkjent brannalarm-anlegg?", "Is there an approved fire alarm system?"],
@@ -80,107 +94,110 @@
       container.appendChild(div);
     });
 
-async function exportPDF() {
-  const checklist = document.getElementById("checklist");
+    async function exportPDF() {
+      const checklist = document.getElementById("checklist");
+      const navnV = document.getElementById("signatur-verneombud-navn").value;
+      const datoV = document.getElementById("signatur-verneombud-dato").value;
+      const filV = document.getElementById("signatur-verneombud-fil").files[0];
+      const navnU = document.getElementById("signatur-utførende-navn").value;
+      const datoU = document.getElementById("signatur-utførende-dato").value;
+      const filU = document.getElementById("signatur-utførende-fil").files[0];
 
-  const signNavn = document.getElementById("signatur-navn").value;
-  const signDato = document.getElementById("signatur-dato").value;
-  const signFil = document.getElementById("signatur-fil").files[0];
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = `
+        <h3>Signaturer</h3>
+        <strong>Verneombud:</strong> ${navnV || "(ikke oppgitt)"}<br>
+        <strong>Dato:</strong> ${datoV || "(ikke oppgitt)"}<br>
+        <strong>Utførende:</strong> ${navnU || "(ikke oppgitt)"}<br>
+        <strong>Dato:</strong> ${datoU || "(ikke oppgitt)"}<br>
+      `;
+      if (filV) {
+        const imgV = document.createElement("img");
+        imgV.src = URL.createObjectURL(filV);
+        imgV.style.maxWidth = "200px";
+        tempDiv.appendChild(imgV);
+      }
+      if (filU) {
+        const imgU = document.createElement("img");
+        imgU.src = URL.createObjectURL(filU);
+        imgU.style.maxWidth = "200px";
+        tempDiv.appendChild(imgU);
+      }
+      checklist.appendChild(tempDiv);
 
-  const tempDiv = document.createElement("div");
-  tempDiv.style.marginTop = "20px";
-  tempDiv.innerHTML = `<strong>Signert av:</strong> ${signNavn || "(ikke oppgitt)"}<br>
-    <strong>Dato:</strong> ${signDato || "(ikke oppgitt)"}<br>`;
+      const canvas = await html2canvas(checklist, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jspdf.jsPDF();
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      let position = 0;
 
-  if (signFil) {
-    const img = document.createElement("img");
-    img.src = URL.createObjectURL(signFil);
-    img.style.maxWidth = "200px";
-    img.style.marginTop = "10px";
-    tempDiv.appendChild(img);
-  }
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      while (position + pdf.internal.pageSize.getHeight() < pdfHeight) {
+        position += pdf.internal.pageSize.getHeight();
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, -position, pdfWidth, pdfHeight);
+      }
 
-  checklist.appendChild(tempDiv);
-
-  const canvas = await html2canvas(checklist, { scale: 2 });
-  const imgData = canvas.toDataURL("image/png");
-  const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = pdf.internal.pageSize.getHeight();
-
-  const imgProps = pdf.getImageProperties(imgData);
-  const imgWidth = pdfWidth;
-  const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-  let position = 0;
-
-  // legg til første side
-  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-  
-  // legg til ekstra sider hvis nødvendig
-  while (position + pdfHeight < imgHeight) {
-    position += pdfHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, 'PNG', 0, -position, imgWidth, imgHeight);
-  }
-
-  pdf.save("vernerunde.pdf");
-
-  checklist.removeChild(tempDiv);
-}
+      pdf.save("vernerunde.pdf");
+      checklist.removeChild(tempDiv);
+    }
 
     function exportExcel() {
       const wb = XLSX.utils.book_new();
       const ws_data = [["Spørsmål", "Ja/Nei", "Merknad", "Bilde"]];
       const items = document.querySelectorAll(".check-item");
+      let remaining = 0, done = 0;
 
-      let remaining = 0;
-      let done = 0;
+      function finishExcel() {
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "Sjekkliste");
+        XLSX.writeFile(wb, "vernerunde.xlsx");
+      }
 
-      items.forEach((item, idx) => {
+      function readImage(q, a, note, file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          ws_data.push([q, a, note, e.target.result]);
+          done++;
+          if (done === remaining) finishExcel();
+        };
+        reader.readAsDataURL(file);
+      }
+
+      items.forEach(item => {
         const q = item.querySelector(".question")?.innerText || "";
         const a = item.querySelector("input[type=radio]:checked")?.value || "";
         const note = item.querySelector("textarea")?.value || "";
         const file = item.querySelector("input[type=file]")?.files[0];
-
         if (file) {
           remaining++;
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            ws_data.push([q, a, note, e.target.result]);
-            done++;
-            if (done === remaining) finishExcel(wb, ws_data);
-          };
-          reader.readAsDataURL(file);
+          readImage(q, a, note, file);
         } else {
           ws_data.push([q, a, note, ""]);
         }
       });
 
-      // Add signature info
-      const signName = document.getElementById("signatur-navn").value;
-      const signDate = document.getElementById("signatur-dato").value;
-      const signFile = document.getElementById("signatur-fil").files[0];
-      if (signFile) {
-        remaining++;
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          ws_data.push(["Signatur", signName, signDate, e.target.result]);
-          done++;
-          if (done === remaining) finishExcel(wb, ws_data);
-        };
-        reader.readAsDataURL(signFile);
-      } else {
-        ws_data.push(["Signatur", signName, signDate, ""]);
-      }
+      // Add both signatures
+      const signatures = [
+        ["Signatur - Verneombud", "signatur-verneombud-navn", "signatur-verneombud-dato", "signatur-verneombud-fil"],
+        ["Signatur - Utførende", "signatur-utførende-navn", "signatur-utførende-dato", "signatur-utførende-fil"]
+      ];
 
-      if (remaining === 0) finishExcel(wb, ws_data);
-    }
+      signatures.forEach(([label, navnId, datoId, filId]) => {
+        const name = document.getElementById(navnId).value;
+        const date = document.getElementById(datoId).value;
+        const file = document.getElementById(filId).files[0];
+        if (file) {
+          remaining++;
+          readImage(label, name, date, file);
+        } else {
+          ws_data.push([label, name, date, ""]);
+        }
+      });
 
-    function finishExcel(wb, data) {
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, "Sjekkliste");
-      XLSX.writeFile(wb, "vernerunde.xlsx");
+      if (remaining === 0) finishExcel();
     }
   </script>
 </body>
