@@ -16,7 +16,7 @@
     .options { margin-bottom: 5px; }
     .options label { margin-right: 15px; }
     textarea { width: 100%; resize: vertical; padding: 5px; margin-bottom: 5px; }
-    input[type="file"] { margin-top: 5px; }
+    input[type="file"], input[type="text"], input[type="date"] { padding: 5px; margin-bottom: 5px; }
     .export-buttons { text-align: center; margin-top: 20px; }
     .export-buttons button { margin: 5px; padding: 10px 20px; font-size: 1em; }
   </style>
@@ -29,6 +29,7 @@
 
     <div class="section-title">Signaturer</div>
 
+    <!-- Verneombud -->
     <div class="check-item">
       <div class="question">Verneombud (navn):<br>HSE Representative (name):</div>
       <input type="text" id="signatur-verneombud-navn" placeholder="Fyll inn navn">
@@ -38,10 +39,11 @@
       <input type="date" id="signatur-verneombud-dato">
     </div>
     <div class="check-item">
-      <div class="question">Last opp signatur (valgfritt):<br>Upload signature (optional):</div>
-      <input type="file" accept="image/*" id="signatur-verneombud-fil">
+      <div class="question">Signatur:<br>Signature:</div>
+      <input type="text" id="signatur-verneombud-signatur" placeholder="__________________________">
     </div>
 
+    <!-- Utførende -->
     <div class="check-item">
       <div class="question">Utførende (navn):<br>Responsible Worker (name):</div>
       <input type="text" id="signatur-utførende-navn" placeholder="Fyll inn navn">
@@ -51,8 +53,8 @@
       <input type="date" id="signatur-utførende-dato">
     </div>
     <div class="check-item">
-      <div class="question">Last opp signatur (valgfritt):<br>Upload signature (optional):</div>
-      <input type="file" accept="image/*" id="signatur-utførende-fil">
+      <div class="question">Signatur:<br>Signature:</div>
+      <input type="text" id="signatur-utførende-signatur" placeholder="__________________________">
     </div>
 
     <div class="export-buttons">
@@ -89,40 +91,33 @@
           <label><input type="radio" name="q${i}" value="Nei"> Nei</label>
         </div>
         <textarea placeholder="Merknad..."></textarea>
-        <input type="file" accept="image/*">
       `;
       container.appendChild(div);
     });
 
     async function exportPDF() {
       const checklist = document.getElementById("checklist");
+
       const navnV = document.getElementById("signatur-verneombud-navn").value;
       const datoV = document.getElementById("signatur-verneombud-dato").value;
-      const filV = document.getElementById("signatur-verneombud-fil").files[0];
+      const signaturV = document.getElementById("signatur-verneombud-signatur").value;
+
       const navnU = document.getElementById("signatur-utførende-navn").value;
       const datoU = document.getElementById("signatur-utførende-dato").value;
-      const filU = document.getElementById("signatur-utførende-fil").files[0];
+      const signaturU = document.getElementById("signatur-utførende-signatur").value;
 
       const tempDiv = document.createElement("div");
+      tempDiv.style.marginTop = "20px";
       tempDiv.innerHTML = `
         <h3>Signaturer</h3>
         <strong>Verneombud:</strong> ${navnV || "(ikke oppgitt)"}<br>
         <strong>Dato:</strong> ${datoV || "(ikke oppgitt)"}<br>
+        <strong>Signatur:</strong> ${signaturV || "___________"}<br><br>
         <strong>Utførende:</strong> ${navnU || "(ikke oppgitt)"}<br>
         <strong>Dato:</strong> ${datoU || "(ikke oppgitt)"}<br>
+        <strong>Signatur:</strong> ${signaturU || "___________"}
       `;
-      if (filV) {
-        const imgV = document.createElement("img");
-        imgV.src = URL.createObjectURL(filV);
-        imgV.style.maxWidth = "200px";
-        tempDiv.appendChild(imgV);
-      }
-      if (filU) {
-        const imgU = document.createElement("img");
-        imgU.src = URL.createObjectURL(filU);
-        imgU.style.maxWidth = "200px";
-        tempDiv.appendChild(imgU);
-      }
+
       checklist.appendChild(tempDiv);
 
       const canvas = await html2canvas(checklist, { scale: 2 });
@@ -146,58 +141,25 @@
 
     function exportExcel() {
       const wb = XLSX.utils.book_new();
-      const ws_data = [["Spørsmål", "Ja/Nei", "Merknad", "Bilde"]];
+      const ws_data = [["Spørsmål", "Ja/Nei", "Merknad"]];
+
       const items = document.querySelectorAll(".check-item");
-      let remaining = 0, done = 0;
-
-      function finishExcel() {
-        const ws = XLSX.utils.aoa_to_sheet(ws_data);
-        XLSX.utils.book_append_sheet(wb, ws, "Sjekkliste");
-        XLSX.writeFile(wb, "vernerunde.xlsx");
-      }
-
-      function readImage(q, a, note, file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          ws_data.push([q, a, note, e.target.result]);
-          done++;
-          if (done === remaining) finishExcel();
-        };
-        reader.readAsDataURL(file);
-      }
-
       items.forEach(item => {
-        const q = item.querySelector(".question")?.innerText || "";
-        const a = item.querySelector("input[type=radio]:checked")?.value || "";
+        const question = item.querySelector(".question")?.innerText || "";
+        const answer = item.querySelector("input[type=radio]:checked")?.value || "";
         const note = item.querySelector("textarea")?.value || "";
-        const file = item.querySelector("input[type=file]")?.files[0];
-        if (file) {
-          remaining++;
-          readImage(q, a, note, file);
-        } else {
-          ws_data.push([q, a, note, ""]);
+        if (question && answer) {
+          ws_data.push([question, answer, note]);
         }
       });
 
-      // Add both signatures
-      const signatures = [
-        ["Signatur - Verneombud", "signatur-verneombud-navn", "signatur-verneombud-dato", "signatur-verneombud-fil"],
-        ["Signatur - Utførende", "signatur-utførende-navn", "signatur-utførende-dato", "signatur-utførende-fil"]
-      ];
+      // Signaturer
+      ws_data.push(["Signatur - Verneombud", document.getElementById("signatur-verneombud-navn").value, document.getElementById("signatur-verneombud-signatur").value]);
+      ws_data.push(["Signatur - Utførende", document.getElementById("signatur-utførende-navn").value, document.getElementById("signatur-utførende-signatur").value]);
 
-      signatures.forEach(([label, navnId, datoId, filId]) => {
-        const name = document.getElementById(navnId).value;
-        const date = document.getElementById(datoId).value;
-        const file = document.getElementById(filId).files[0];
-        if (file) {
-          remaining++;
-          readImage(label, name, date, file);
-        } else {
-          ws_data.push([label, name, date, ""]);
-        }
-      });
-
-      if (remaining === 0) finishExcel();
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, "Sjekkliste");
+      XLSX.writeFile(wb, "vernerunde.xlsx");
     }
   </script>
 </body>
