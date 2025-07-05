@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Vernerunde - Sjekkliste</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -83,6 +83,10 @@
       padding: 10px 20px;
       font-size: 1em;
     }
+
+    .only-screen {
+      margin-bottom: 30px;
+    }
   </style>
 </head>
 <body>
@@ -92,17 +96,18 @@
     <div id="check-items"></div>
 
     <div class="section-title">Ansvarlige</div>
+    <div class="only-screen">
+      <div class="check-item">
+        <div class="question">Verneombud (navn):</div>
+        <input type="text" id="signatur-verneombud-navn" placeholder="Skriv inn navn">
+        <input type="date" id="signatur-verneombud-dato">
+      </div>
 
-    <div class="check-item">
-      <div class="question">Verneombud (navn):</div>
-      <input type="text" id="signatur-verneombud-navn" placeholder="Skriv inn navn">
-      <input type="date" id="signatur-verneombud-dato">
-    </div>
-
-    <div class="check-item">
-      <div class="question">Utførende (navn):</div>
-      <input type="text" id="signatur-utførende-navn" placeholder="Skriv inn navn">
-      <input type="date" id="signatur-utførende-dato">
+      <div class="check-item">
+        <div class="question">Utførende (navn):</div>
+        <input type="text" id="signatur-utførende-navn" placeholder="Skriv inn navn">
+        <input type="date" id="signatur-utførende-dato">
+      </div>
     </div>
 
     <div class="export-buttons">
@@ -146,11 +151,13 @@
 
     async function exportPDF() {
       const checklist = document.getElementById("checklist");
-
       const navnV = document.getElementById("signatur-verneombud-navn").value;
       const datoV = document.getElementById("signatur-verneombud-dato").value;
       const navnU = document.getElementById("signatur-utførende-navn").value;
       const datoU = document.getElementById("signatur-utførende-dato").value;
+
+      // Skjul inputfeltene før eksport
+      document.querySelector('.only-screen').style.display = "none";
 
       const tempDiv = document.createElement("div");
       tempDiv.style.marginTop = "40px";
@@ -169,6 +176,7 @@
           Signatur: <span style="display:inline-block; border-bottom:2px solid #000; width:300px; height:40px;"></span>
         </div>
       `;
+
       checklist.appendChild(tempDiv);
 
       const canvas = await html2canvas(checklist, { scale: 2 });
@@ -187,13 +195,14 @@
       }
 
       pdf.save("vernerunde.pdf");
+
       checklist.removeChild(tempDiv);
+      document.querySelector('.only-screen').style.display = "block";
     }
 
     function exportExcel() {
       const wb = XLSX.utils.book_new();
       const ws_data = [["Spørsmål", "Ja/Nei", "Merknad"]];
-
       const items = document.querySelectorAll(".check-item");
       items.forEach(item => {
         const question = item.querySelector(".question")?.innerText || "";
